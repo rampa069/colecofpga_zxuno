@@ -51,9 +51,9 @@ entity zxuno_top is
 		clock_50_i			: in    std_logic;
 
 		-- SRAM (AS7C34096)
-		sram_addr_o			: out   std_logic_vector(18 downto 0)	:= (others => '0');
+		sram_addr_o		: out   std_logic_vector(19 downto 0)	:= (others => '0');
 		sram_data_io		: inout std_logic_vector(7 downto 0)	:= (others => 'Z');
-		sram_we_n_o			: out   std_logic								:= '1';
+		sram_we_n_o		: out   std_logic								:= '1';
 
 		-- PS2
 		ps2_clk_io			: inout std_logic								:= 'Z';
@@ -132,7 +132,7 @@ architecture behavior of zxuno_top is
 	signal core_reload_s		: std_logic;
 
 	-- RAM memory
-	signal ram_addr_s			: std_logic_vector(18 downto 0);		-- 512K
+	signal ram_addr_s			: std_logic_vector(19 downto 0);		-- 1M
 	signal d_from_ram_s		: std_logic_vector( 7 downto 0);
 	signal d_to_ram_s			: std_logic_vector( 7 downto 0);
 	signal ram_ce_s			: std_logic;
@@ -310,7 +310,7 @@ begin
 		porta0_data_i	=> d_to_ram_s,
 		porta0_data_o	=> d_from_ram_s,
 		-- Port 1
-		porta1_addr_i	=> "00111" & vram_addr_s,
+		porta1_addr_i	=> "000111" & vram_addr_s,
 		porta1_ce_i		=> vram_ce_s,
 		porta1_oe_i		=> vram_oe_s,
 		porta1_we_i		=> vram_we_s,
