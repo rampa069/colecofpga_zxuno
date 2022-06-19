@@ -55,7 +55,7 @@ entity zxuno_top_vga2m is
 --		key_service_n_i	: in    std_logic;
 
 		-- SRAM (AS7C34096)
-		sram_addr_o			: out   std_logic_vector(18 downto 0)	:= (others => '0');
+		sram_addr_o			: out   std_logic_vector(19 downto 0)	:= (others => '0');
 		sram_data_io		: inout std_logic_vector(7 downto 0)	:= (others => 'Z');
 		sram_we_n_o			: out   std_logic								:= '1';
 		sram_ceoe_n_o		: out   std_logic								:= '1';
@@ -134,7 +134,7 @@ architecture behavior of zxuno_top_vga2m is
 	signal core_reload_s		: std_logic;
 
 	-- RAM memory
-	signal ram_addr_s			: std_logic_vector(18 downto 0);		-- 128K
+	signal ram_addr_s			: std_logic_vector(19 downto 0);		-- 1Mb
 	signal d_from_ram_s		: std_logic_vector(7 downto 0);
 	signal d_to_ram_s			: std_logic_vector(7 downto 0);
 	signal ram_ce_s			: std_logic;
@@ -142,7 +142,7 @@ architecture behavior of zxuno_top_vga2m is
 	signal ram_we_s			: std_logic;
 
 	-- VRAM memory
-	signal vram_addr_s		: std_logic_vector(18 downto 0);		-- 16K
+	signal vram_addr_s		: std_logic_vector(19 downto 0);		-- 16K
 	signal vram_do_s			: std_logic_vector(7 downto 0);
 	signal vram_di_s			: std_logic_vector(7 downto 0);
 	signal vram_ce_s			: std_logic;
@@ -273,7 +273,7 @@ begin
 		D_cpu_addr			=> open--D_cpu_addr
 	 );
 
-   vram_addr_s(18 downto 14) <= "00111";
+   vram_addr_s(19 downto 14) <= "000111";
    
 	-- SRAM
 	sram0: entity work.dpSRAM_5128

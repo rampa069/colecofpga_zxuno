@@ -43,21 +43,21 @@ entity dpSRAM_5128 is
 	port (
 		clk_i				:  in    std_logic;
 		-- Port 0
-		porta0_addr_i	:  in    std_logic_vector(18 downto 0);
+		porta0_addr_i	:  in    std_logic_vector(19 downto 0);
 		porta0_ce_i		:  in    std_logic;
 		porta0_oe_i		:  in    std_logic;
 		porta0_we_i		:  in    std_logic;
 		porta0_data_i	:  in    std_logic_vector(7 downto 0);
 		porta0_data_o	:  out   std_logic_vector(7 downto 0);
 		-- Port 1
-		porta1_addr_i	:  in    std_logic_vector(18 downto 0);
+		porta1_addr_i	:  in    std_logic_vector(19 downto 0);
 		porta1_ce_i		:  in    std_logic;
 		porta1_oe_i		:  in    std_logic;
 		porta1_we_i		:  in    std_logic;
 		porta1_data_i	:  in    std_logic_vector(7 downto 0);
 		porta1_data_o	:  out   std_logic_vector(7 downto 0);
 		-- SRAM in board
-		sram_addr_o		:  out   std_logic_vector(18 downto 0);
+		sram_addr_o		:  out   std_logic_vector(19 downto 0);
 		sram_data_io	:  inout std_logic_vector(7 downto 0);
 		sram_ce_n_o		:  out   std_logic								:= '1';
 		sram_oe_n_o		:  out   std_logic								:= '1';
@@ -87,8 +87,8 @@ begin
 		variable p1_req_v		: std_logic									:= '0';
 		variable p0_we_v		: std_logic									:= '0';
 		variable p1_we_v		: std_logic									:= '0';
-		variable p0_addr_v	: std_logic_vector(18 downto 0);
-		variable p1_addr_v	: std_logic_vector(18 downto 0);
+		variable p0_addr_v	: std_logic_vector(19 downto 0);
+		variable p1_addr_v	: std_logic_vector(19 downto 0);
 		variable p0_data_v	: std_logic_vector(7 downto 0);
 		variable p1_data_v	: std_logic_vector(7 downto 0);
 

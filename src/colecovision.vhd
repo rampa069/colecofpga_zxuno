@@ -66,7 +66,7 @@ entity colecovision is
 		ctrl_p8_o		: out std_logic_vector( 1 downto 0);
 		ctrl_p9_i		: in  std_logic_vector( 1 downto 0);
 		-- CPU RAM Interface ------------------------------------------------------
-		ram_addr_o		: out std_logic_vector(18 downto 0);	-- 512K
+		ram_addr_o		: out std_logic_vector(19 downto 0);	-- 1M
 		ram_ce_o			: out std_logic;
 		ram_oe_o			: out std_logic;
 		ram_we_o			: out std_logic;
@@ -191,13 +191,13 @@ architecture Behavior of colecovision is
 	signal io_read_s			: std_logic;
 	signal io_write_s			: std_logic;
 	signal bios_en_s        : std_logic;
-	signal cart_page_s      : std_logic_vector(3 downto 0) := "0000";
-	signal cart_totpage_s   : std_logic_vector(3 downto 0);
-	signal cart_actpage_s   : std_logic_vector(3 downto 0);
+	signal cart_page_s      : std_logic_vector(4 downto 0) := "00000";
+	signal cart_totpage_s   : std_logic_vector(4 downto 0);
+	signal cart_actpage_s   : std_logic_vector(4 downto 0);
 	signal cart_actpage_cs_s: std_logic;
 	signal cart_totpage_cs_s: std_logic;
 	signal megacart_en_s    : std_logic;
-	signal megacart_page_s  : std_logic_vector(3 downto 0);
+	signal megacart_page_s  : std_logic_vector(4 downto 0);
 
 	-- machine id
 	signal machine_id_cs_s	: std_logic;
@@ -482,12 +482,12 @@ begin
 	-- 10000 - 17FFF = Cartridge (32K)			10xxxxxxxxxxxxxxx
 	--
 	ram_addr_o		<=
-		"000000"    & cpu_addr_s(12 downto 0)	when bios_ce_s = '1'											            else
-		"0001"      & cpu_addr_s(14 downto 0)	when ram_ce_s =  '1'												         else	-- 32K linear RAM
-		"0010"      & cpu_addr_s(14 downto 0)	when cart_ce_s = '1' and loader_q = '1'							   else
-		"0010"      & cpu_addr_s(14 downto 0)	when cart_ce_s = '1' and multcart_q = '1' and cart_oe_s = '1'	else
-		'1'& cart_actpage_s  & cpu_addr_s(13 downto 0)	when cart_we_s = '1'  else 
-		'1'& cart_page_s     & cpu_addr_s(13 downto 0)	when cart_ce_s = '1' and multcart_q = '0' else
+		"0000000"    & cpu_addr_s(12 downto 0)	when bios_ce_s = '1'											            else
+		"00001"      & cpu_addr_s(14 downto 0)	when ram_ce_s =  '1'												         else	-- 32K linear RAM
+		"00010"      & cpu_addr_s(14 downto 0)	when cart_ce_s = '1' and loader_q = '1'							   else
+		"00010"      & cpu_addr_s(14 downto 0)	when cart_ce_s = '1' and multcart_q = '1' and cart_oe_s = '1'	else
+		"1"& cart_actpage_s  & cpu_addr_s(13 downto 0)	when cart_we_s = '1'  else 
+		"1"& cart_page_s     & cpu_addr_s(13 downto 0)	when cart_ce_s = '1' and multcart_q = '0' else
 		(others => '0');
 
 	ram_data_o		<= d_from_cpu_s;
@@ -514,7 +514,7 @@ begin
   begin
         if reset_n_s = '0' then  
 		    bios_en_s <= '1';
-			 megacart_page_s <= "0000";
+			 megacart_page_s <= "00000";
         elsif rising_edge( clock_i )
 		    then if io_write_s = '1' and cpu_addr_s(7 downto 0) = x"7f"
             then
@@ -523,7 +523,7 @@ begin
 		  
 		  if megacart_en_s = '1'  and mem_access_s ='1' and rd_n_s = '0' and cpu_addr_s(15 downto 6) = x"FF"&"11"
             then
-               megacart_page_s <= cpu_addr_s(3 downto 0) and cart_totpage_s;
+               megacart_page_s <= cpu_addr_s(4 downto 0) and cart_totpage_s;
             end if;
         end if;
  end process sgm;
@@ -532,9 +532,10 @@ begin
  megacart: process (clock_i)  
  begin
 
-    if (cart_totpage_s = "0011" or      --  64k
-        cart_totpage_s = "0111" or      -- 128k
-        cart_totpage_s = "1111") then   -- 256k
+    if (cart_totpage_s = "00011" or   --  64k
+        cart_totpage_s = "00111" or   -- 128k
+        cart_totpage_s = "01111" or   -- 256k
+		  cart_totpage_s = "11111") then-- 512k
         megacart_en_s <= '1';
     else
         megacart_en_s <= '0';
@@ -545,16 +546,16 @@ begin
             if megacart_en_s = '1' then
                 cart_page_s <= cart_totpage_s; 
             else
-                cart_page_s <= "0000";
+                cart_page_s <= "00000";
             end if;
         when "11" =>
             if megacart_en_s = '1' then
                 cart_page_s <= megacart_page_s;
             else
-                cart_page_s <= "0001";
+                cart_page_s <= "00001";
             end if;
         when others =>
-            cart_page_s     <= "0000";
+            cart_page_s     <= "00000";
     end case;
 end process megacart;
 ---------------------------------------------------------
@@ -625,7 +626,7 @@ end process megacart;
 			cart_actpage_s <= (others => '0');
 		elsif rising_edge(clock_i) then
 			if clk_en_3m58_i = '1' and cart_actpage_cs_s = '1' and wr_n_s = '0' then
-				cart_actpage_s <= d_from_cpu_s (3 downto 0);
+				cart_actpage_s <= d_from_cpu_s (4 downto 0);
 			end if;
 		end if;
 	end process;
@@ -637,7 +638,7 @@ end process megacart;
 			cart_totpage_s <= (others => '0');
 		elsif rising_edge(clock_i) then
 			if clk_en_3m58_i = '1' and cart_totpage_cs_s = '1' and wr_n_s = '0' then
-				cart_totpage_s <= d_from_cpu_s (3 downto 0);
+				cart_totpage_s <= d_from_cpu_s (4 downto 0);
 			end if;
 		end if;
 	end process;
@@ -657,8 +658,8 @@ end process megacart;
 						ay_d_s                     when ay_data_rd_n_s  ='0'   else
 						machine_id_c					when machine_id_cs_s = '1'	 else
 						cfg_page_r						when cfg_page_cs_s = '1'	 else
-						"0000"& cart_totpage_s     when cart_totpage_cs_s ='1' else
-						"0000"& cart_actpage_s     when cart_actpage_cs_s ='1' else
+						"000"& cart_totpage_s     when cart_totpage_cs_s ='1' else
+						"000"& cart_actpage_s     when cart_actpage_cs_s ='1' else
 						(others => '1');
 
 	-- Debug
