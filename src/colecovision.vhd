@@ -52,7 +52,8 @@ entity colecovision is
 		clock_i			: in  std_logic;
 		clk_en_10m7_i	: in  std_logic;
 		clk_en_5m37_i	: in  std_logic;
-		clk_en_3m58_i	: in  std_logic;
+		clk_en_3m58_p_i: in  std_logic;
+		clk_en_3m58_n_i: in  std_logic;
 		reset_i			: in  std_logic;			-- Reset, tbem acionado quando por_n_i for 0
 		por_n_i			: in  std_logic;			-- Power-on Reset
 		-- Controller Interface ---------------------------------------------------
@@ -166,7 +167,35 @@ architecture Behavior of colecovision is
       ; pcm14s_o           : out    unsigned(13 downto 0)
    );
    end component;
-
+	
+	COMPONENT T80pa
+	PORT(
+		RESET_n : IN std_logic;
+		CLK : IN std_logic;
+		CEN_p : IN std_logic;
+		CEN_n : IN std_logic;
+		WAIT_n : IN std_logic;
+		INT_n : IN std_logic;
+		NMI_n : IN std_logic;
+		BUSRQ_n : IN std_logic;
+		OUT0 : IN std_logic;
+		DI : IN std_logic_vector(7 downto 0);
+		R800_mode : IN std_logic;
+		DIRSet : IN std_logic;
+		DIR : IN std_logic_vector(211 downto 0);          
+		M1_n : OUT std_logic;
+		MREQ_n : OUT std_logic;
+		IORQ_n : OUT std_logic;
+		RD_n : OUT std_logic;
+		WR_n : OUT std_logic;
+		RFSH_n : OUT std_logic;
+		HALT_n : OUT std_logic;
+		BUSAK_n : OUT std_logic;
+		A : OUT std_logic_vector(15 downto 0);
+		DO : OUT std_logic_vector(7 downto 0);
+		REG : OUT std_logic_vector(211 downto 0)
+		);
+	END COMPONENT;
 
 	-- Reset
 	signal reset_n_s			: std_logic;
@@ -179,6 +208,8 @@ architecture Behavior of colecovision is
 	signal m1_wait_q        : std_logic;
 	signal rd_n_s				: std_logic;
 	signal wr_n_s				: std_logic;
+	signal wait_n_s         : std_logic;
+	signal int_n_s          : std_logic;
 	signal mreq_n_s			: std_logic;
 	signal rfsh_n_s			: std_logic;
 	signal cpu_addr_s			: std_logic_vector(15 downto 0);
@@ -227,9 +258,9 @@ architecture Behavior of colecovision is
 
 	-- SN76489 signal
 	signal psg_a_audio_s    : signed( 13 downto 0);
-	signal psg_a_audio_u2    : unsigned( 13 downto 0);
+	signal psg_a_audio_u2   : unsigned( 13 downto 0);
 	signal psg_a_audio_u    : unsigned( 13 downto 0);
-	signal psg_ready_s          : std_logic;
+	signal psg_ready_s      : std_logic;
 	signal psg_we_n_s			: std_logic;
 
 
@@ -275,31 +306,60 @@ architecture Behavior of colecovision is
 
 begin
 
-	-- CPU
-	cpu: entity work.T80a
-	generic map (
-		mode_g		=> 0
-	)
-	port map (
-		clock_i		=> clock_i,
-		clock_en_i	=> clk_en_cpu_s,
-		reset_n_i	=> reset_n_s,
-		address_o	=> cpu_addr_s,
-		data_i		=> d_to_cpu_s,
-		data_o		=> d_from_cpu_s,
-		wait_n_i		=> '1',
-		int_n_i		=> '1',
-		nmi_n_i		=> nmi_n_s,
-		m1_n_o		=> m1_n_s,
-		mreq_n_o		=> mreq_n_s,
-		iorq_n_o		=> iorq_n_s,
-		rd_n_o		=> rd_n_s,
-		wr_n_o		=> wr_n_s,
-		refresh_n_o	=> rfsh_n_s,
-		halt_n_o		=> open,
-		busrq_n_i	=> '1',
-		busak_n_o	=> open
-	);
+--	-- CPU
+--	cpu: entity work.T80a
+--	generic map (
+--				Mode => 0
+--	)
+--	port map (
+--		clock_i		=> clock_i,
+--		clock_en_i	=> clk_en_cpu_s,
+--		reset_n_i	=> reset_n_s,
+--		address_o	=> cpu_addr_s,
+--		data_i		=> d_to_cpu_s,
+--		data_o		=> d_from_cpu_s,
+--		wait_n_i		=> '1',
+--		int_n_i		=> '1',
+--		nmi_n_i		=> nmi_n_s,
+--		m1_n_o		=> m1_n_s,
+--		mreq_n_o		=> mreq_n_s,
+--		iorq_n_o		=> iorq_n_s,
+--		rd_n_o		=> rd_n_s,
+--		wr_n_o		=> wr_n_s,
+--		refresh_n_o	=> rfsh_n_s,
+--		halt_n_o		=> open,
+--		busrq_n_i	=> '1',
+--		busak_n_o	=> open
+--	);
+
+ -----------------------------------------------------------------------------
+  -- T80 CPU
+  -----------------------------------------------------------------------------
+  cpu : entity work.T80pa
+    generic map (
+      Mode       => 0
+    )
+    port map(
+      RESET_n    => reset_n_s,
+      CLK        => clock_i,
+      CEN_p      => clk_en_3m58_p_i,
+      CEN_n      => clk_en_3m58_n_i,
+      WAIT_n     => wait_n_s,
+      INT_n      => int_n_s,
+      NMI_n      => nmi_n_s,
+      BUSRQ_n    => '1',
+      M1_n       => m1_n_s,
+      MREQ_n     => mreq_n_s,
+      IORQ_n     => iorq_n_s,
+      RD_n       => rd_n_s,
+      WR_n       => wr_n_s,
+      RFSH_n     => rfsh_n_s,
+      HALT_n     => open,
+      BUSAK_n    => open,
+      A          => cpu_addr_s,
+      DI         => d_to_cpu_s,
+      DO         => d_from_cpu_s
+    );
 
 	-- Loader
 	lr: entity work.loaderrom
@@ -317,9 +377,9 @@ begin
 		compat_rgb_g	=> compat_rgb_g
 	)
 	port map (
-		clock_i			=> clock_i,
+		clk_i			   => clock_i,
 		clk_en_10m7_i	=> clk_en_10m7_i,
-		clk_en_5m37_i	=> clk_en_5m37_i,
+--		clk_en_5m37_i	=> clk_en_5m37_i,
 		reset_n_i		=> por_n_i,
 		csr_n_i			=> vdp_r_n_s,
 		csw_n_i			=> vdp_w_n_s,
@@ -356,7 +416,7 @@ begin
 	psg_a: ym2149_audio
     port map (
 		clk_i       => clock_i,
-		en_clk_psg_i=> clk_en_3m58_i,
+		en_clk_psg_i=> clk_en_3m58_p_i,
 		reset_n_i   => reset_n_s,
 		bdir_i      => bdir_s,--not ay_addr_we_n_s or not ay_data_we_n_s,
 		bc_i        => bc_s, --not ay_addr_we_n_s or not ay_data_rd_n_s,
@@ -381,7 +441,7 @@ begin
 		MIN_PERIOD_CNT_G   => 17
     )port map (
 		clk_i		=> clock_i,
-		en_clk_psg_i=> clk_en_3m58_i,
+		en_clk_psg_i=> clk_en_3m58_p_i,
 		--res_n_i		=> reset_n_s,
 		ce_n_i		=> psg_we_n_s,
 		wr_n_i		=> psg_we_n_s,
@@ -399,8 +459,8 @@ begin
 	-----------------------------------------------------------------------------
 	ctrl_b : entity work.cv_ctrl
 	port map (
-		clock_i				=> clock_i,
-		clk_en_3m58_i		=> clk_en_3m58_i,
+		clk_i				   => clock_i,
+		clk_en_3m58_i		=> clk_en_3m58_p_i,
 		reset_n_i			=> reset_n_s,
 		ctrl_en_key_n_i	=> ctrl_en_key_n_s,
 		ctrl_en_joy_n_i	=> ctrl_en_joy_n_s,
@@ -414,13 +474,14 @@ begin
 		ctrl_p7_i			=> ctrl_p7_i,
 		ctrl_p8_o			=> ctrl_p8_o,
 		ctrl_p9_i			=> ctrl_p9_i,
-		d_o					=> d_from_ctrl_s
+		d_o					=> d_from_ctrl_s,
+		int_n_o           => int_n_s
 	);
 
 	-- SPI
 	sd: entity work.spi
 	port map (
-		clock_i			=> clk_en_3m58_i,
+		clock_i			=> clk_en_3m58_p_i,
 		reset_i			=> reset_i,
 		addr_i			=> cpu_addr_s(0),
 		cs_i				=> spi_cs_s,
@@ -441,8 +502,7 @@ begin
 
 	-- Glue
 	reset_n_s		<= not reset_i;
-	clk_en_cpu_s	<= clk_en_3m58_i and psg_ready_s and not m1_wait_q;
-
+   wait_n_s  <= psg_ready_s and not m1_wait_q;
 
 	-----------------------------------------------------------------------------
 	-- Process m1_wait
@@ -450,16 +510,19 @@ begin
 	-- Purpose:
 	--   Implements flip-flop U8A which asserts a wait states controlled by M1.
 	--
+
 	m1_wait: process (clock_i, reset_n_s, m1_n_s)
 	begin
-		if reset_n_s = '0' or m1_n_s = '1' then
-			m1_wait_q   <= '0';
-		elsif rising_edge(clock_i) then
-			if clk_en_3m58_i = '1' then
-				m1_wait_q <= not m1_wait_q;
-			end if;
-		end if;
+    if reset_n_s = '0' or m1_n_s = '1' then
+      m1_wait_q   <= '0';
+    elsif clock_i'event and clock_i = '1' then
+      if clk_en_3m58_p_i = '1' then
+        m1_wait_q <= not m1_wait_q;
+      end if;
+    end if;
 	end process m1_wait;
+
+ 
 
 	-----------------------------------------------------------------------------
 	-- Misc outputs
@@ -598,7 +661,7 @@ end process megacart;
 		elsif reset_i = '1' then
 			multcart_q <= '1';
 		elsif rising_edge(clock_i) then
-			if clk_en_3m58_i = '1' and cfg_port_cs_s = '1' then
+			if clk_en_3m58_p_i = '1' and cfg_port_cs_s = '1' then
 				ext_cart_en_q	<= d_from_cpu_s(2);
 				multcart_q <= d_from_cpu_s(1);
 				loader_q	  <= d_from_cpu_s(0);
@@ -612,7 +675,7 @@ end process megacart;
 		if por_n_i = '0' then
 			cfg_page_r <= (others => '0');
 		elsif rising_edge(clock_i) then
-			if clk_en_3m58_i = '1' and cfg_page_cs_s = '1' and wr_n_s = '0' then
+			if clk_en_3m58_p_i = '1' and cfg_page_cs_s = '1' and wr_n_s = '0' then
 				cfg_page_r <= d_from_cpu_s;
 			end if;
 		end if;
@@ -624,7 +687,7 @@ end process megacart;
 		if por_n_i = '0' then
 			cart_actpage_s <= (others => '0');
 		elsif rising_edge(clock_i) then
-			if clk_en_3m58_i = '1' and cart_actpage_cs_s = '1' and wr_n_s = '0' then
+			if clk_en_3m58_p_i = '1' and cart_actpage_cs_s = '1' and wr_n_s = '0' then
 				cart_actpage_s <= d_from_cpu_s (3 downto 0);
 			end if;
 		end if;
@@ -636,7 +699,7 @@ end process megacart;
 		if por_n_i = '0' then
 			cart_totpage_s <= (others => '0');
 		elsif rising_edge(clock_i) then
-			if clk_en_3m58_i = '1' and cart_totpage_cs_s = '1' and wr_n_s = '0' then
+			if clk_en_3m58_p_i = '1' and cart_totpage_cs_s = '1' and wr_n_s = '0' then
 				cart_totpage_s <= d_from_cpu_s (3 downto 0);
 			end if;
 		end if;

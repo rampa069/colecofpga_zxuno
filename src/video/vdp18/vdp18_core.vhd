@@ -73,15 +73,17 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+
 entity vdp18_core is
+
   generic (
+    is_pal_g      : integer := 0;
     compat_rgb_g  : integer := 0
   );
   port (
     -- Global Interface -------------------------------------------------------
-    clock_i       : in  std_logic;
+    clk_i         : in  std_logic;
     clk_en_10m7_i : in  std_logic;
-	 clk_en_5m37_i	: in  std_logic;
     reset_n_i     : in  std_logic;
     -- CPU Interface ----------------------------------------------------------
     csr_n_i       : in  std_logic;
@@ -98,22 +100,26 @@ entity vdp18_core is
     vram_d_o      : out std_logic_vector(0 to  7);
     vram_d_i      : in  std_logic_vector(0 to  7);
     -- Video Interface --------------------------------------------------------
+--   border_i      : in  std_logic;
     col_o         : out std_logic_vector(0 to 3);
-	 cnt_hor_o		: out std_logic_vector(8 downto 0);
+    cnt_hor_o		: out std_logic_vector(8 downto 0);
 	 cnt_ver_o		: out std_logic_vector(7 downto 0);
     rgb_r_o       : out std_logic_vector(0 to 7);
     rgb_g_o       : out std_logic_vector(0 to 7);
     rgb_b_o       : out std_logic_vector(0 to 7);
     hsync_n_o     : out std_logic;
     vsync_n_o     : out std_logic;
+    blank_n_o     : out std_logic;
+    hblank_o      : out std_logic;
+    vblank_o      : out std_logic;
     comp_sync_n_o : out std_logic
   );
 
 end vdp18_core;
 
-
-use work.vdp18_comp_pack.all;
+use work.vdp18_pack.all;
 use work.vdp18_pack.opmode_t;
+use work.vdp18_comp_pack.all;
 use work.vdp18_pack.hv_t;
 use work.vdp18_pack.access_t;
 use work.vdp18_pack.to_boolean_f;
@@ -134,11 +140,14 @@ architecture struct of vdp18_core is
          num_line_s       : hv_t;
   signal hsync_n_s,
          vsync_n_s        : std_logic;
+			
   signal blank_s          : boolean;
+  signal hblank_s         : boolean;
+  signal vblank_s         : boolean;
 
   signal vert_inc_s       : boolean;
 
-  signal reg_blank_s,
+  signal reg_blank_s,  
          reg_size1_s,
          reg_mag1_s       : boolean;
 
@@ -175,34 +184,47 @@ architecture struct of vdp18_core is
   signal spr_coll_s       : boolean;
 
   signal irq_s            : boolean;
+  signal vram_read_s		  : boolean;
+  signal vram_write_s	  : boolean;
 
---  signal false_s          : boolean;
- 
-	signal vram_read_s		: boolean;
-	signal vram_write_s		: boolean;
+  signal blank_n          : boolean;
+  signal hblank_n          : boolean;
+  signal vblank_n          : boolean;
 
 begin
 
-  -- temporary defaults
- -- false_s       <= false;
+
 
   clk_en_10m7_s <= to_boolean_f(clk_en_10m7_i);
-  clk_en_5m37_s <= to_boolean_f(clk_en_5m37_i);
   rd_s          <= not to_boolean_f(csr_n_i);
   wr_s          <= not to_boolean_f(csw_n_i);
 
   reset_s <= reset_n_i = '0';
 
+
+  -----------------------------------------------------------------------------
+  -- Clock Generator
+  -----------------------------------------------------------------------------
+  clk_gen_b : vdp18_clk_gen
+    port map (
+      clk_i         => clk_i,
+      clk_en_10m7_i => clk_en_10m7_i,
+      reset_i       => reset_s,
+      clk_en_5m37_o => clk_en_5m37_s,
+      clk_en_2m68_o => open
+    );
+
+
   -----------------------------------------------------------------------------
   -- Horizontal and Vertical Timing Generator
   -----------------------------------------------------------------------------
   hor_vert_b : vdp18_hor_vert
+
     port map (
-      clock_i       => clock_i,
+      clk_i         => clk_i,
       clk_en_5m37_i => clk_en_5m37_s,
       reset_i       => reset_s,
       opmode_i      => opmode_s,
-		ntsc_pal_i		=> '0',			-- NTSC
       num_pix_o     => num_pix_s,
       num_line_o    => num_line_s,
       vert_inc_o    => vert_inc_s,
@@ -210,20 +232,21 @@ begin
       vsync_n_o     => vsync_n_s,
       blank_o       => blank_s,
 		cnt_hor_o		=> cnt_hor_o,
-		cnt_ver_o		=> cnt_ver_o
+		cnt_ver_o		=> cnt_ver_o,
+      hblank_o      => hblank_s,
+      vblank_o      => vblank_s
     );
 
   hsync_n_o     <= hsync_n_s;
   vsync_n_o     <= vsync_n_s;
   comp_sync_n_o <= not (hsync_n_s xor vsync_n_s);
 
-
   -----------------------------------------------------------------------------
   -- Control Module
   -----------------------------------------------------------------------------
   ctrl_b : vdp18_ctrl
     port map (
-      clock_i         => clock_i,
+      clk_i         => clk_i,
       clk_en_5m37_i => clk_en_5m37_s,
       reset_i       => reset_s,
       opmode_i      => opmode_s,
@@ -250,7 +273,7 @@ begin
   -----------------------------------------------------------------------------
   cpu_io_b : vdp18_cpuio
     port map (
-      clock_i         => clock_i,
+      clk_i         => clk_i,
       clk_en_10m7_i => clk_en_10m7_s,
       clk_en_acc_i  => clk_en_acc_s,
       reset_i       => reset_s,
@@ -317,7 +340,7 @@ begin
   -----------------------------------------------------------------------------
   pattern_b : vdp18_pattern
     port map (
-      clock_i         => clock_i,
+      clk_i         => clk_i,
       clk_en_5m37_i => clk_en_5m37_s,
       clk_en_acc_i  => clk_en_acc_s,
       reset_i       => reset_s,
@@ -340,7 +363,7 @@ begin
   -----------------------------------------------------------------------------
   sprite_b : vdp18_sprite
     port map (
-      clock_i         => clock_i,
+      clk_i         => clk_i,
       clk_en_5m37_i => clk_en_5m37_s,
       clk_en_acc_i  => clk_en_acc_s,
       reset_i       => reset_s,
@@ -373,12 +396,15 @@ begin
       compat_rgb_g  => compat_rgb_g
     )
     port map (
-      clock_i         => clock_i,
+      clk_i         => clk_i,
       clk_en_5m37_i => clk_en_5m37_s,
       reset_i       => reset_s,
       vert_active_i => vert_active_s,
       hor_active_i  => hor_active_s,
+      border_i      => '0',
       blank_i       => blank_s,
+      hblank_i      => hblank_s,
+      vblank_i      => vblank_s,
       reg_col0_i    => reg_col0_s,
       pat_col_i     => pat_col_s,
       spr0_col_i    => spr0_col_s,
@@ -386,9 +412,16 @@ begin
       spr2_col_i    => spr2_col_s,
       spr3_col_i    => spr3_col_s,
       col_o         => col_o,
+ --     blank_n_o     => blank_n,
+ --     hblank_n_o    => hblank_n,
+ --     vblank_n_o    => vblank_n,
       rgb_r_o       => rgb_r_o,
       rgb_g_o       => rgb_g_o,
       rgb_b_o       => rgb_b_o
     );
+	 
+	 blank_n_o <= '1' when blank_n  else '0';
+	 hblank_o  <= '0' when hblank_n else '1';
+	 vblank_o  <= '0' when vblank_n else '1';
 
 end struct;

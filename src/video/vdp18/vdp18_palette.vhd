@@ -1,7 +1,14 @@
 -------------------------------------------------------------------------------
 --
--- CoelcoFPGA project
+-- Synthesizable model of TI's TMS9918A, TMS9928A, TMS9929A.
 --
+-- $Id: vdp18_palette.vhd,v 1.10 2016/11/09 10:47:01 fbelavenuto Exp $
+--
+-- Palette
+--
+-------------------------------------------------------------------------------
+--
+-- Copyright (c) 2006, Arnim Laeuger (arnim.laeuger@gmx.net)
 -- Copyright (c) 2016, Fabio Belavenuto (belavenuto@gmail.com)
 --
 -- All rights reserved
@@ -42,91 +49,56 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity clocks is
+entity vdp18_palette is
 	port (
-		clock_i			: in  std_logic;				-- 21 MHz
-		por_i				: in  std_logic;
-		clock_vdp_en_o	: out std_logic;
-		clock_5m_en_o	: out std_logic;
-      clk_en_3m58_p_o: out std_logic;
-		clk_en_3m58_n_o: out std_logic);
+		reset_i			: in  boolean;
+		clock_i			: in  std_logic;
+		we_i				: in  std_logic;
+		addr_wr_i		: in  std_logic_vector(0 to  3);
+		data_i			: in  std_logic_vector(0 to 15);
+		addr_rd_i		: in  std_logic_vector(0 to  3);
+		data_o			: out std_logic_vector(0 to 15)
+	);
 end entity;
 
-architecture rtl of clocks is
+architecture Memory of vdp18_palette is
 
-	-- Clocks
-	signal clk1_cnt_q			: unsigned(1 downto 0);
-	signal clk2_cnt_q			: unsigned(1 downto 0);
-	signal clock_vdp_en_s	: std_logic								:= '0';	-- 10.7 MHz 
-	signal clock_5m_en_s		: std_logic								:= '0';
-	
+	type ram_t is array (natural range 15 downto 0) of std_logic_vector(15 downto 0);
+	signal ram_q : ram_t;
+	signal read_addr_q : unsigned(3 downto 0);
 
 begin
 
-	-----------------------------------------------------------------------------
-	process (clock_i, por_i)
+	process (reset_i, clock_i)
 	begin
-		if por_i = '1' then
-			clk1_cnt_q		<= (others => '0');
-			clock_vdp_en_s	<= '0';
-			clock_5m_en_s	<= '0';
-
+		if reset_i then
+			ram_q <= (
+				--      RB0G
+				0  => X"0000",
+				1  => X"0000",
+				2  => X"240C",
+				3  => X"570D",
+				4  => X"5E05",
+				5  => X"7F07",
+				6  => X"D405",
+				7  => X"4F0E",
+				8  => X"F505",
+				9  => X"F707",
+				10 => X"D50C",
+				11 => X"E80C",
+				12 => X"230B",
+				13 => X"CB09",
+				14 => X"CC0C",
+				15 => X"FF0F"
+			);
 		elsif rising_edge(clock_i) then
-	 
-			-- Clock counter --------------------------------------------------------
-			if clk1_cnt_q = 3 then
-				clk1_cnt_q <= (others => '0');
-			else
-				clk1_cnt_q <= clk1_cnt_q + 1;
+			if we_i = '1' then
+				ram_q(to_integer(unsigned(addr_wr_i))) <= data_i;
 			end if;
-
-			-- 10.7 MHz clock enable ------------------------------------------------
-			case clk1_cnt_q is
-				when "01" | "11" =>
-					clock_vdp_en_s <= '1';
-				when others =>
-					clock_vdp_en_s <= '0';
-			end case;
-
-			-- 5.37 MHz clock enable ------------------------------------------------
-			case clk1_cnt_q is
-				when "11" =>
-					clock_5m_en_s <= '1';
-				when others =>
-					clock_5m_en_s <= '0';
-			end case;
+			read_addr_q <= unsigned(addr_rd_i);
 		end if;
 	end process;
 
+	data_o <= ram_q(to_integer(read_addr_q));
 
-	-----------------------------------------------------------------------------
-	process (clock_i, por_i)
-	begin
-		if por_i = '1' then
-			clk2_cnt_q     <= (others => '0');
-		elsif rising_edge(clock_i) then
-			if clock_vdp_en_s = '1' then
-				if clk2_cnt_q = 0 then
-					clk2_cnt_q <= "10";
-				else
-					clk2_cnt_q <= clk2_cnt_q - 1;
-				end if;
-			end if;
-		end if;
-	end process;
-
-	
-
-	--
-	clock_vdp_en_o	<= clock_vdp_en_s;
-	clock_5m_en_o	<= clock_5m_en_s;
-  
-  
-  clk_en_3m58_p_o <=   clock_vdp_en_s
-                   when clk2_cnt_q = 0 else
-                     '0';
-
-  clk_en_3m58_n_o <=   clock_vdp_en_s
-                   when clk2_cnt_q = "10" else
-                     '0';
 end architecture;

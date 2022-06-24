@@ -18,8 +18,8 @@ use work.vdp18_pack.access_t;
 package vdp18_comp_pack is
 
   component vdp18_clk_gen
-    port (
-      clock_i       : in  std_logic;
+  port (
+      clk_i       : in  std_logic;
       clk_en_10m7_i : in  std_logic;
       reset_i       : in  boolean;
       clk_en_5m37_o : out boolean;
@@ -30,17 +30,19 @@ package vdp18_comp_pack is
 
 	component vdp18_hor_vert
 	port (
-		clock_i       : in  std_logic;
+		clk_i       : in  std_logic;
 		clk_en_5m37_i : in  boolean;
 		reset_i       : in  boolean;
 		opmode_i      : in  opmode_t;
-		ntsc_pal_i		: in  std_logic;
+		--ntsc_pal_i		: in  std_logic;
 		num_pix_o     : out hv_t;
 		num_line_o    : out hv_t;
 		vert_inc_o    : out boolean;
 		hsync_n_o     : out std_logic;
 		vsync_n_o     : out std_logic;
 		blank_o       : out boolean;
+		hblank_o      : out boolean;
+      vblank_o      : out boolean;
 		cnt_hor_o		: out std_logic_vector(8 downto 0);
 		cnt_ver_o		: out std_logic_vector(7 downto 0)
 	);
@@ -48,7 +50,7 @@ package vdp18_comp_pack is
 
   component vdp18_ctrl
     port (
-      clock_i       : in  std_logic;
+      clk_i       : in  std_logic;
       clk_en_5m37_i : in  boolean;
       reset_i       : in  boolean;
       opmode_i      : in  opmode_t;
@@ -72,7 +74,7 @@ package vdp18_comp_pack is
 
   component vdp18_cpuio
     port (
-      clock_i       : in  std_logic;
+      clk_i       : in  std_logic;
       clk_en_10m7_i : in  boolean;
       clk_en_acc_i  : in  boolean;
       reset_i       : in  boolean;
@@ -133,7 +135,7 @@ package vdp18_comp_pack is
 
   component vdp18_pattern
     port (
-      clock_i       : in  std_logic;
+      clk_i       : in  std_logic;
       clk_en_5m37_i : in  boolean;
       clk_en_acc_i  : in  boolean;
       reset_i       : in  boolean;
@@ -153,7 +155,7 @@ package vdp18_comp_pack is
 
   component vdp18_sprite
     port (
-      clock_i       : in  std_logic;
+      clk_i       : in  std_logic;
       clk_en_5m37_i : in  boolean;
       clk_en_acc_i  : in  boolean;
       reset_i       : in  boolean;
@@ -183,12 +185,15 @@ package vdp18_comp_pack is
       compat_rgb_g  : integer := 0
     );
     port (
-      clock_i       : in  std_logic;
+      clk_i       : in  std_logic;
       clk_en_5m37_i : in  boolean;
       reset_i       : in  boolean;
       vert_active_i : in  boolean;
       hor_active_i  : in  boolean;
       blank_i       : in  boolean;
+		border_i       : in  std_logic;
+		hblank_i       : in  boolean;
+		vblank_i       : in  boolean;
       reg_col0_i    : in  std_logic_vector(0 to 3);
       pat_col_i     : in  std_logic_vector(0 to 3);
       spr0_col_i    : in  std_logic_vector(0 to 3);

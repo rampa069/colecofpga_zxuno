@@ -86,7 +86,7 @@ package kbd_pkg is
   constant SCANCODE_PERIOD      : std_logic_vector(7 downto 0) := X"49";
   constant SCANCODE_SLASH       : std_logic_vector(7 downto 0) := X"4A";
   constant SCANCODE_ENTER       : std_logic_vector(7 downto 0) := X"5A";
-  constant SCANCODE_HOME        : std_logic_vector(7 downto 0) := X"6C";
+  constant SCANCODE_HOME        : std_logic_vector(7 downto 0) := X"7E"; -- Scroll lock
   constant SCANCODE_INS         : std_logic_vector(7 downto 0) := X"70"; -- E0
   constant SCANCODE_PGUP        : std_logic_vector(7 downto 0) := X"7D"; -- E0
   constant SCANCODE_PGDN        : std_logic_vector(7 downto 0) := X"7A"; -- E0

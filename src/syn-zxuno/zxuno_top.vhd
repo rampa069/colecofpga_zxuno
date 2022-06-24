@@ -74,7 +74,7 @@ entity zxuno_top is
 		flash_miso_i		: in    std_logic;
 		flash_wp_o			: out   std_logic								:= '0';
 		flash_hold_o		: out   std_logic								:= '1';
-
+		
 		-- Joystick
 		joy_up_i				: in    std_logic;
 		joy_down_i			: in    std_logic;
@@ -120,7 +120,8 @@ architecture behavior of zxuno_top is
 	signal clock_mem_s		: std_logic;
 	signal clock_vdp_en_s	: std_logic;
 	signal clock_5m_en_s		: std_logic;
-	signal clock_3m_en_s		: std_logic;
+	signal clk_en_3m58_p_s	: std_logic;
+	signal clk_en_3m58_n_s	: std_logic;
 	signal clock_vga_s		: std_logic;
 	signal clock_hdmi_s		: std_logic;
 
@@ -228,7 +229,8 @@ begin
 		por_i				=> not por_n_s,
 		clock_vdp_en_o	=> clock_vdp_en_s,
 		clock_5m_en_o	=> clock_5m_en_s,
-		clock_3m_en_o	=> clock_3m_en_s
+		clk_en_3m58_p_o=> clk_en_3m58_p_s,
+	   clk_en_3m58_n_o=> clk_en_3m58_n_s		
 	);
 
 	-- The Colecovision
@@ -241,7 +243,9 @@ begin
 		clock_i				=> clock_master_s,
 		clk_en_10m7_i		=> clock_vdp_en_s,
 		clk_en_5m37_i		=> clock_5m_en_s,
-		clk_en_3m58_i		=> clock_3m_en_s,
+		clk_en_3m58_p_i	=> clk_en_3m58_p_s,
+		clk_en_3m58_n_i	=> clk_en_3m58_n_s,
+		
 		reset_i				=> reset_s,
 		por_n_i				=> por_n_s,
 		-- Controller Interface

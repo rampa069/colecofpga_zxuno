@@ -53,7 +53,7 @@ use work.vdp18_pack.opmode_t;
 entity vdp18_cpuio is
 
   port (
-    clock_i       : in  std_logic;
+    clk_i         : in  std_logic;
     clk_en_10m7_i : in  boolean;
     clk_en_acc_i  : in  boolean;
     reset_i       : in  boolean;
@@ -128,6 +128,12 @@ architecture rtl of vdp18_cpuio is
   signal write_tmp_s    : boolean;
   signal tmp_q          : std_logic_vector(0 to 7);
   signal write_reg_s    : boolean;
+  
+   -- Status bits
+   signal sp_c_ff       : std_logic;
+   signal sp_5s_ff      : std_logic;
+   signal sp_5th_reg    : std_logic_vector(0 to 4);
+   signal intr_ff       : std_logic;
 
   -- control register bits ----------------------------------------------------
   type   ctrl_reg_t is array (natural range 7 downto 0) of
@@ -154,7 +160,7 @@ begin
   -- Purpose:
   --   Implements the sequential elements.
   --
-  seq: process (clock_i, reset_i)
+  seq: process (clk_i, reset_i)
     variable incr_addr_v  : boolean;
   begin
     if reset_i then
@@ -166,7 +172,7 @@ begin
       wrvram_sched_q <= false;
       wrvram_q       <= false;
 
-    elsif clock_i'event and clock_i = '1' then
+    elsif clk_i'event and clk_i = '1' then
       -- default assignments
       incr_addr_v  := incr_addr_s;
 
@@ -181,7 +187,9 @@ begin
           -- immediately stop read-ahead
           rdvram_sched_q <= false;
           rdvram_q       <= false;
-        elsif clk_en_acc_i and rdvram_q and access_type_i = AC_CPU then
+        elsif clk_en_acc_i           and
+              rdvram_q               and
+              access_type_i = AC_CPU then
           -- write read-ahead buffer from VRAM during CPU access slot
           buffer_q    <= vram_d_i;
           -- stop scanning for CPU data
@@ -232,7 +240,6 @@ begin
   end process seq;
   --
   -----------------------------------------------------------------------------
-
   vram_read_o	<= rdvram_q;
   vram_write_o	<= wrvram_q;
 
@@ -274,7 +281,7 @@ begin
   -- Purpose:
   --   Implements the register interface.
   --
-  reg_if: process (clock_i, reset_i)
+  reg_if: process (clk_i, reset_i)
     variable reg_addr_v : unsigned(0 to 2);
   begin
     if reset_i then
@@ -284,12 +291,8 @@ begin
       sprite_5th_q     <= false;
       sprite_5th_num_q <= (others => '0');
       int_n_q          <= '1';
-		ctrl_reg_q(1) <= X"C0";
-		ctrl_reg_q(2) <= X"02";
-		ctrl_reg_q(3) <= X"2C";
-		ctrl_reg_q(7) <= X"F7";
 
-    elsif clock_i'event and clock_i = '1' then
+    elsif clk_i'event and clk_i = '1' then
       if clk_en_10m7_i then
         -- Temporary register -------------------------------------------------
         if write_tmp_s then
@@ -541,10 +544,10 @@ begin
   -----------------------------------------------------------------------------
   -- Build status register
   -----------------------------------------------------------------------------
-  status_reg_s <= not int_n_q                   &
-                  to_std_logic_f(sprite_5th_q)  &
-                  to_std_logic_f(sprite_coll_q) &
-                  sprite_5th_num_q;
+  status_reg_s <= not int_n_q                  &
+                 to_std_logic_f(sprite_5th_q)  &
+                 to_std_logic_f(sprite_coll_q) &
+                 sprite_5th_num_q;
 
   -----------------------------------------------------------------------------
   -- Output mapping
@@ -552,8 +555,12 @@ begin
   vram_a_o <= std_logic_vector(addr_q);
   vram_d_o <= buffer_q;
 
-  cd_o		<= buffer_q	when read_mux_s = RDMUX_READAHEAD else	status_reg_s;
-  cd_oe_o	<= '1'		when rd_i	else	'0';
+  cd_o        <=   buffer_q
+                 when read_mux_s = RDMUX_READAHEAD else
+                   status_reg_s;
+  cd_oe_o     <=   '1'
+                 when rd_i else
+                   '0';
 
   reg_ev_o    <= to_boolean_f(ctrl_reg_q(0)(7));
   reg_16k_o   <= to_boolean_f(ctrl_reg_q(1)(0));
@@ -568,5 +575,4 @@ begin
   reg_col1_o  <= ctrl_reg_q(7)(0 to 3);
   reg_col0_o  <= ctrl_reg_q(7)(4 to 7);
   int_n_o     <= int_n_q or not ctrl_reg_q(1)(2);
-
 end rtl;

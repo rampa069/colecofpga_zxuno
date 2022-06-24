@@ -47,18 +47,25 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+
 entity vdp18_col_mux is
 
   generic (
     compat_rgb_g  : integer := 0
   );
   port (
-    clock_i       : in  std_logic;
+    clk_i         : in  std_logic;
     clk_en_5m37_i : in  boolean;
     reset_i       : in  boolean;
     vert_active_i : in  boolean;
     hor_active_i  : in  boolean;
+    border_i      : in  std_logic;
     blank_i       : in  boolean;
+    hblank_i      : in  boolean;
+    vblank_i      : in  boolean;
+    blank_n_o     : out boolean;
+    hblank_n_o    : out boolean;
+    vblank_n_o    : out boolean;
     reg_col0_i    : in  std_logic_vector(0 to 3);
     pat_col_i     : in  std_logic_vector(0 to 3);
     spr0_col_i    : in  std_logic_vector(0 to 3);
@@ -138,7 +145,7 @@ begin
   --   Converts the color information to simple RGB and saves these in
   --   output registers.
   --
-  rgb_reg: process (clock_i, reset_i)
+  rgb_reg: process (clk_i, reset_i)
     variable col_v       : natural range 0 to 15;
     variable rgb_r_v,
              rgb_g_v,
@@ -150,7 +157,7 @@ begin
       rgb_g_o   <= (others => '0');
       rgb_b_o   <= (others => '0');
 
-    elsif clock_i'event and clock_i = '1' then
+    elsif clk_i'event and clk_i = '1' then
       if clk_en_5m37_i then
         -- select requested RGB table
         if compat_rgb_g = 1 then
@@ -168,6 +175,14 @@ begin
         rgb_r_o <= std_logic_vector(to_unsigned(rgb_r_v, 8));
         rgb_g_o <= std_logic_vector(to_unsigned(rgb_g_v, 8));
         rgb_b_o <= std_logic_vector(to_unsigned(rgb_b_v, 8));
+        blank_n_o <= not blank_i;
+        if border_i = '0' then
+          hblank_n_o <= hor_active_i;
+          vblank_n_o <= vert_active_i;
+        else
+          hblank_n_o <= not hblank_i;
+          vblank_n_o <= not vblank_i;
+        end if;
       end if;
 
     end if;

@@ -123,7 +123,9 @@ architecture behavior of zxuno_top_vga2m is
 	signal clock_mem_s		: std_logic;
 	signal clock_vdp_en_s	: std_logic;
 	signal clock_5m_en_s		: std_logic;
-	signal clock_3m_en_s		: std_logic;
+   signal clk_en_3m58_p_s  : std_logic;
+   signal clk_en_3m58_n_s  : std_logic;
+
 
 	-- Resets
 	signal por_cnt_s			: unsigned(7 downto 0)				:= (others => '1');
@@ -203,7 +205,8 @@ begin
 		por_i				=> por_s,
 		clock_vdp_en_o	=> clock_vdp_en_s,
 		clock_5m_en_o	=> clock_5m_en_s,
-		clock_3m_en_o	=> clock_3m_en_s
+      clk_en_3m58_p_o=> clk_en_3m58_p_s,
+      clk_en_3m58_n_o=> clk_en_3m58_n_s
 	);
 
 	-- The Colecovision
@@ -216,7 +219,8 @@ begin
 		clock_i				=> clock_master_s,
 		clk_en_10m7_i		=> clock_vdp_en_s,
 		clk_en_5m37_i		=> clock_5m_en_s,
-		clk_en_3m58_i		=> clock_3m_en_s,
+		clk_en_3m58_p_i => clk_en_3m58_p_s,
+      clk_en_3m58_n_i => clk_en_3m58_n_s,
 		reset_i				=> reset_s,
 		por_n_i				=> por_n_s,
 		-- Controller Interface
